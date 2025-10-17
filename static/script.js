@@ -59,8 +59,8 @@ function updateUI(data) {
 // Update statistics cards
 function updateStats(data) {
     const totalCryptos = data.length;
-    const gainers = data.filter(c => c.change_24h > 0).length;
-    const losers = data.filter(c => c.change_24h < 0).length;
+    const gainers = data.filter(c => (c.change_dir || (c.change_24h > 0 ? 'up' : c.change_24h < 0 ? 'down' : 'flat')) === 'up').length;
+    const losers = data.filter(c => (c.change_dir || (c.change_24h > 0 ? 'up' : c.change_24h < 0 ? 'down' : 'flat')) === 'down').length;
     const totalMarketCap = data.reduce((sum, c) => sum + (c.market_cap || 0), 0);
     
     document.getElementById('totalCryptos').textContent = totalCryptos;

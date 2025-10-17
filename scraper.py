@@ -41,16 +41,19 @@ def scrape_crypto_prices():
         # Build header index map
         thead = target_table.find('thead')
         headers = [th.get_text(strip=True).lower() for th in thead.find_all('th')] if thead else []
+
         def find_col_idx(names):
             for i, h in enumerate(headers):
                 if any(n in h for n in names):
                     return i
             return None
+
         def find_24h_idx():
             for i, h in enumerate(headers):
                 if '24h' in h and '7d' not in h and '1h' not in h and 'volume' not in h:
                     return i
             return None
+
         header_map = {
             'rank': find_col_idx(['#', 'rank']),
             'coin': find_col_idx(['coin']),
@@ -117,13 +120,13 @@ def scrape_crypto_prices():
                     rank = None
             if rank is not None and (rank < 1 or rank > 10):
                 continue
-            # Prefer column-based parsing when table cells are available
-            tds = row.find_all('td', recursive=False)
+
+            # Initialize default values
             name = None
             symbol = None
             price = 0.0
             change_24h = 0.0
-            change_dir = None
+            change_dir = 'flat'
             vol_24h = 0.0
             market_cap = 0.0
 
@@ -137,6 +140,7 @@ def scrape_crypto_prices():
                         coin_cell = tds[2]
                     else:
                         coin_cell = tds[1] if len(tds) > 1 else None
+
                 price_cell = tds[header_map.get('price')] if header_map.get('price') is not None and len(tds) > header_map['price'] else (tds[2] if len(tds) > 2 else None)
                 change24_cell = tds[header_map.get('change24')] if header_map.get('change24') is not None and len(tds) > header_map['change24'] else None
                 vol_cell = tds[header_map.get('volume24')] if header_map.get('volume24') is not None and len(tds) > header_map['volume24'] else None
@@ -157,18 +161,45 @@ def scrape_crypto_prices():
 
                 if price_cell:
                     price = parse_money(price_cell.get_text(strip=True))
+
+                # --- Improved 24h change parsing ---
                 if change24_cell:
                     try:
                         raw_change = change24_cell.get_text(strip=True)
-                        change_24h = float(raw_change.replace('%', '').replace('−', '-'))
-                        change_dir = 'up' if change_24h > 0 else 'down' if change_24h < 0 else 'flat'
-                    except:
+                        # Normalize minus signs (U+2212 or other variants)
+                        raw_change = raw_change.replace('−', '-').replace('–', '-')
+                        change_24h = float(raw_change.replace('%', '').strip())
+
+                        # Determine direction from value
+                        if change_24h > 0:
+                            change_dir = 'up'
+                        elif change_24h < 0:
+                            change_dir = 'down'
+                        else:
+                            change_dir = 'flat'
+
+                        # Optional: check for icons indicating direction
+                        icon = change24_cell.find('svg') or change24_cell.find('i')
+                        if icon:
+                            icon_classes = icon.get('class', [])
+                            # icon_classes could be list or string
+                            if isinstance(icon_classes, str):
+                                icon_classes = [icon_classes]
+                            icon_classes = [c.lower() for c in icon_classes]
+                            if any('down' in c or 'arrow-down' in c for c in icon_classes):
+                                change_dir = 'down'
+                            elif any('up' in c or 'arrow-up' in c for c in icon_classes):
+                                change_dir = 'up'
+
+                    except Exception:
                         change_24h = 0.0
                         change_dir = 'flat'
+
                 if vol_cell:
                     vol_24h = parse_money(vol_cell.get_text(strip=True))
                 if mcap_cell:
                     market_cap = parse_money(mcap_cell.get_text(strip=True))
+
                 # If either volume or market cap is missing, try to infer from remaining $ cells
                 if market_cap == 0.0 or vol_24h == 0.0:
                     money_vals = [parse_money(td.get_text(strip=True)) for td in tds if '$' in td.get_text()]
@@ -181,8 +212,9 @@ def scrape_crypto_prices():
                             market_cap = money_vals[0]
                         if vol_24h == 0.0 and len(money_vals) > 1:
                             vol_24h = money_vals[1]
+
             else:
-                # Fallback to heuristic parsing
+                # Fallback to heuristic parsing if table cells missing
                 texts = [el.get_text(separator=' ', strip=True) for el in row.find_all(['td', 'span', 'a', 'div']) if el.get_text(strip=True)]
                 # Name
                 for t in texts:
@@ -210,7 +242,8 @@ def scrape_crypto_prices():
                             continue
                     if '%' in t and any(ch.isdigit() for ch in t):
                         try:
-                            change_24h = float(t.replace('%', '').replace('−', '-').strip())
+                            raw_change = t.replace('−', '-').replace('–', '-').strip()
+                            change_24h = float(raw_change.replace('%', ''))
                             change_dir = 'up' if change_24h > 0 else 'down' if change_24h < 0 else 'flat'
                         except:
                             change_24h = 0.0
@@ -230,7 +263,7 @@ def scrape_crypto_prices():
                 'market_cap': market_cap,
                 'volume_24h': vol_24h,
                 'change_24h': change_24h,
-                'change_dir': change_dir or ('up' if change_24h > 0 else 'down' if change_24h < 0 else 'flat'),
+                'change_dir': change_dir,
                 'image_url': image_url
             }
 
@@ -256,6 +289,7 @@ def scrape_crypto_prices():
 
     print(f"✅ Scraping complete, saved {scraped} items (top 10 enforced)\n")
     return scraped > 0
+
 
 if __name__ == "__main__":
     # Test the scraper
