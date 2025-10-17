@@ -3,6 +3,7 @@ from flask_cors import CORS
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 import atexit
+import os
 
 from database import init_db, get_all_cryptos, get_crypto_history
 from scraper import scrape_crypto_prices
@@ -13,9 +14,14 @@ CORS(app)
 # Initialize database
 init_db()
 
-# Configure scheduler for automated scraping
+# Configure scheduler for automated scraping (interval from env, default 10 min)
+try:
+    SCRAPE_INTERVAL_MINUTES = int(os.environ.get("SCRAPE_INTERVAL", "10"))
+except ValueError:
+    SCRAPE_INTERVAL_MINUTES = 10
+
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=scrape_crypto_prices, trigger="interval", minutes=10)
+scheduler.add_job(func=scrape_crypto_prices, trigger="interval", minutes=SCRAPE_INTERVAL_MINUTES)
 scheduler.start()
 
 # Shut down the scheduler when exiting the app
@@ -25,6 +31,11 @@ atexit.register(lambda: scheduler.shutdown())
 def index():
     """Render the main page"""
     return render_template('index.html')
+
+@app.route('/health')
+def health():
+    """Health check endpoint for Render"""
+    return jsonify({"status": "ok", "time": datetime.now().isoformat()}), 200
 
 @app.route('/api/cryptos')
 def get_cryptos():

@@ -2,7 +2,8 @@ import sqlite3
 from datetime import datetime
 import os
 
-DATABASE_PATH = 'crypto_data.db'
+# Allow overriding DB path via environment variable for deployments
+DATABASE_PATH = os.environ.get('DATABASE_PATH', 'crypto_data.db')
 
 def get_connection():
     """Create a database connection"""
