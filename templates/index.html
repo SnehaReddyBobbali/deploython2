@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Crypto Tracker 🚀</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🚀 Live Crypto Tracker</h1>
+                <p class="subtitle">Real-time cryptocurrency prices updated every 10 minutes</p>
+            </div>
+            <div class="header-actions">
+                <button id="refreshBtn" class="btn btn-primary">
+                    <span class="btn-icon">🔄</span>
+                    Refresh Now
+                </button>
+                <div class="last-update">
+                    Last updated: <span id="lastUpdate">Loading...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Tracked</div>
+                    <div class="stat-value" id="totalCryptos">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-label">Gainers</div>
+                    <div class="stat-value" id="gainers">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📉</div>
+                <div class="stat-content">
+                    <div class="stat-label">Losers</div>
+                    <div class="stat-value" id="losers">-</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-label">Total Market Cap</div>
+                    <div class="stat-value" id="totalMarketCap">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-state">
+            <div class="spinner"></div>
+            <p>Loading cryptocurrency data...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="error-state" style="display: none;">
+            <div class="error-icon">⚠️</div>
+            <p id="errorMessage">Failed to load data</p>
+            <button onclick="loadCryptoData()" class="btn btn-secondary">Try Again</button>
+        </div>
+
+        <!-- Crypto Table -->
+        <div class="table-container" id="tableContainer" style="display: none;">
+            <table class="crypto-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Cryptocurrency</th>
+                        <th>Price (USD)</th>
+                        <th>24h Change</th>
+                        <th>Market Cap</th>
+                        <th>24h Volume</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody id="cryptoTableBody">
+                    <!-- Data will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Data sourced from <strong>CoinGecko API</strong> | Auto-updates every 10 minutes</p>
+            <p class="footer-note">Built with Python Flask + Web Scraping 🐍</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
