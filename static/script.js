@@ -1,5 +1,5 @@
 // API endpoints
-const API_BASE = window.location.origin;
+const API_BASE = "https://deploython2171025.onrender.com";
 const CRYPTOS_ENDPOINT = `${API_BASE}/api/cryptos`;
 const SCRAPE_ENDPOINT = `${API_BASE}/api/scrape-now`;
 
