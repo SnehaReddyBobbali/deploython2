@@ -85,10 +85,11 @@ function createTableRow(crypto, rank) {
     const tr = document.createElement('tr');
     
     const change24h = parseFloat(crypto.change_24h || 0);
-    const isPositive = change24h >= 0;
+    const dir = crypto.change_dir || (change24h > 0 ? 'up' : change24h < 0 ? 'down' : 'flat');
+    const isPositive = dir === 'up' || (dir === 'flat' && change24h >= 0);
     const changeClass = isPositive ? 'change-positive' : 'change-negative';
     const badgeClass = isPositive ? 'badge-positive' : 'badge-negative';
-    const changeIcon = isPositive ? '▲' : '▼';
+    const changeIcon = dir === 'up' ? '▲' : dir === 'down' ? '▼' : '•';
     
     tr.innerHTML = `
         <td>${rank}</td>

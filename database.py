@@ -26,10 +26,21 @@ def init_db():
             market_cap REAL,
             volume_24h REAL,
             change_24h REAL,
+            change_dir TEXT,
             image_url TEXT,
             last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # Lightweight migration: add column change_dir if missing (SQLite allows ADD COLUMN)
+    try:
+        cursor.execute("PRAGMA table_info(cryptos)")
+        cols = [r[1] for r in cursor.fetchall()]
+        if 'change_dir' not in cols:
+            cursor.execute("ALTER TABLE cryptos ADD COLUMN change_dir TEXT")
+    except Exception:
+        # Ignore if pragma/alter fails in some environments
+        pass
     
     # Create price_history table for tracking price changes over time
     cursor.execute('''
@@ -62,14 +73,15 @@ def save_crypto_data(crypto_data):
     try:
         # Insert or update the latest price in cryptos table
         cursor.execute('''
-            INSERT INTO cryptos (symbol, name, price, market_cap, volume_24h, change_24h, image_url, last_updated)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO cryptos (symbol, name, price, market_cap, volume_24h, change_24h, change_dir, image_url, last_updated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(symbol) DO UPDATE SET
                 name = excluded.name,
                 price = excluded.price,
                 market_cap = excluded.market_cap,
                 volume_24h = excluded.volume_24h,
                 change_24h = excluded.change_24h,
+                change_dir = excluded.change_dir,
                 image_url = excluded.image_url,
                 last_updated = excluded.last_updated
         ''', (
@@ -79,6 +91,7 @@ def save_crypto_data(crypto_data):
             crypto_data['market_cap'],
             crypto_data['volume_24h'],
             crypto_data['change_24h'],
+            crypto_data.get('change_dir'),
             crypto_data['image_url'],
             datetime.now()
         ))
@@ -108,7 +121,7 @@ def get_all_cryptos():
     cursor = conn.cursor()
     
     cursor.execute('''
-        SELECT symbol, name, price, market_cap, volume_24h, change_24h, image_url, last_updated
+        SELECT symbol, name, price, market_cap, volume_24h, change_24h, change_dir, image_url, last_updated
         FROM cryptos
         ORDER BY market_cap DESC
     ''')
@@ -152,6 +165,25 @@ def cleanup_old_data(days=7):
     
     print(f"🧹 Cleaned up {deleted} old records")
     return deleted
+
+def prune_cryptos(keep_symbols):
+    """Keep only the provided symbols in the 'cryptos' table (used to enforce top-N)."""
+    if not keep_symbols:
+        return 0
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Build a dynamic placeholders list for the NOT IN clause
+    placeholders = ','.join(['?'] * len(keep_symbols))
+    try:
+        cursor.execute(f"""
+            DELETE FROM cryptos
+            WHERE symbol NOT IN ({placeholders})
+        """, tuple(keep_symbols))
+        deleted = cursor.rowcount
+        conn.commit()
+        return deleted
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
     # Test database initialization
