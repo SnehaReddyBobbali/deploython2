@@ -1,5 +1,7 @@
 // API endpoints
-const API_BASE = "https://deploython2171025.onrender.com";
+// Use local API when running on localhost/127.0.0.1, otherwise use Render URL
+const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+const API_BASE = isLocal ? "" : "https://deploython2171025.onrender.com";
 const CRYPTOS_ENDPOINT = `${API_BASE}/api/cryptos`;
 const SCRAPE_ENDPOINT = `${API_BASE}/api/scrape-now`;
 
