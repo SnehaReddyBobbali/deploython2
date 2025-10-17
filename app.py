@@ -23,7 +23,13 @@ except ValueError:
 scheduler = BackgroundScheduler()
 # Prevent duplicate scheduler if app restarts (Flask debug mode)
 if not scheduler.running:
-    scheduler.add_job(func=scrape_crypto_prices, trigger="interval", minutes=SCRAPE_INTERVAL_MINUTES)
+    # Run immediately on start, then every SCRAPE_INTERVAL_MINUTES
+    scheduler.add_job(
+        func=scrape_crypto_prices,
+        trigger="interval",
+        minutes=SCRAPE_INTERVAL_MINUTES,
+        next_run_time=datetime.now(timezone.utc)
+    )
     scheduler.start()
 
 # Shut down the scheduler when exiting the app
